@@ -2,13 +2,10 @@
 #include "catch.hpp"
 
 #include "../source/interaction_networks.h"
-Controller t;
 
-TEST_CASE("MakePop", "[helpers]") {
-    emp::Random r;
-    emp::vector<org_t> pop = make_pop(r, 20, 10);
-    REQUIRE(pop.size() == 20);
-    CHECK(pop[0].size() == 10);
+TEST_CASE("VectorProduct", "[helpers]") {
+    emp::vector<int> v({5,2,8});
+    CHECK(VectorProduct(v) == 80);
 }
 
 TEST_CASE("FindHighest", "[helpers]") {
@@ -31,90 +28,229 @@ TEST_CASE("FindHighest", "[helpers]") {
 
     highest = FindHighest(v, 2);
     CHECK(highest.size() == 2);
+
+    emp::vector<emp::vector<double> > v2({{1.1,2.1,3.1}, {2.1, 1.1, 3.1}, {1.1,3.1,2.1}});
+    auto highest2 = FindHighest(v2, 0);
+    CHECK(highest2.size() == 1);
+    emp::vector<double> res2 = highest2[0];
+
+    for (size_t i = 0; i < res2.size(); i++) {
+        CHECK( res2[i] == Approx(v2[1][i]));
+    }
+
+    highest2 = FindHighest(v2, 0, 1.0);
+    CHECK(highest2.size() == 3);
+
+    highest2 = FindHighest(v2, 1, 1.0);
+    CHECK(highest2.size() == 2);
+
+
 }
+
+TEST_CASE("FilterImposssible" , "[helpers]") {
+    emp::vector<emp::vector<double> > v({{1.5,2.1,3.1}, {1.5, 1.1, 1.1}, {1.1,1.1,1.1}, {1.5,0,0}, {0,0,0}, {1,1,3.1}});
+    emp::vector<int> axes({0,1,2});
+    auto res = FilterImpossible(v, axes);
+    CHECK(res.size() == 4);
+
+    res = FilterImpossible(v, axes, .4);
+    CHECK(res.size() == 5);
+
+    axes = {1};
+    res = FilterImpossible(v, axes);
+    CHECK(res.size() == 1);
+
+    axes = {2};
+    res = FilterImpossible(v, axes);
+    CHECK(res.size() == 2);
+}
+
+TEST_CASE("PruneAxes", "[helpers]") {
+    emp::vector<org_t> v({{1,2,3}, {2, 1, 3}, {1,3,3}});
+    emp::vector<int> axes({0,1,2});
+    emp::vector<int> result = PruneAxes(axes, v);
+
+    CHECK(result.size() == 2);
+    CHECK(emp::Has(result, 0));
+    CHECK(emp::Has(result, 1));
+
+    emp::vector<emp::vector<double> > v2({{1.5,2.1,3.1}, {1.5, 1.1, 1.1}, {1.1,1.1,1.1}, {1.5,0,0}, {1.1,0,0}, {1.2,1,3.1}});
+    result = PruneAxes(axes, v2);
+    CHECK(result.size() == 3);
+    result = PruneAxes(axes, v2, .4);
+    CHECK(result.size() == 2);
+    CHECK(emp::Has(result, 1));
+    CHECK(emp::Has(result, 2));
+
+}
+
 
 TEST_CASE("Lexicase", "[selection_schemes]") {
     emp::vector<org_t> pop({{3,0,0}, {0, 3, 0}, {0,0,3}});
-    fit_map_t fits = lexicase_fitness(pop, DEFAULT);
+    fit_map_t fits = LexicaseFitness(pop);
     for (auto & o : fits) {
         CHECK(o.second == Approx(.33333333333));
     }
 
     pop = emp::vector<org_t>({{3,3,3}, {0, 1, 2}, {2,1,1}});
-    fits = lexicase_fitness(pop, DEFAULT);
+    fits = LexicaseFitness(pop);
     CHECK(fits[{3,3,3}] == 1);
     CHECK(fits[{0,1,2}] == 0);
     CHECK(fits[{2,1,1}] == 0);
 
     pop = emp::vector<org_t>({{3,3,3}, {3, 1, 2}, {2,1,1}});
-    fits = lexicase_fitness(pop, DEFAULT);
+    fits = LexicaseFitness(pop);
     CHECK(fits[{3,3,3}] == 1);
     CHECK(fits[{3,1,2}] == 0);
     CHECK(fits[{2,1,1}] == 0);
 
     pop = emp::vector<org_t>({{3,3,3}, {3, 3, 3}, {2,1,1}});
-    fits = lexicase_fitness(pop, DEFAULT);
+    fits = LexicaseFitness(pop);
     CHECK(fits[{3,3,3}] == Approx(.5));
     CHECK(fits[{2,1,1}] == 0);
 
     pop = emp::vector<org_t>({{3,1,2}, {1, 1, 2}, {2,1,1}});
-    fits = lexicase_fitness(pop, DEFAULT);
+    fits = LexicaseFitness(pop);
     CHECK(fits[{3,1,2}] == Approx(1));
     CHECK(fits[{1,1,2}] == 0);
     CHECK(fits[{2,1,1}] == 0);
 
     pop = emp::vector<org_t>({{3,1,2}, {1, 3, 2}, {2,3,1}});
-    fits = lexicase_fitness(pop, DEFAULT);
+    fits = LexicaseFitness(pop);
     CHECK(fits[{3,1,2}] == Approx(.5));
     CHECK(fits[{1,3,2}] == Approx(.333333));
     CHECK(fits[{2,3,1}] == Approx(.16666667));
 
     pop = emp::vector<org_t>({{3,1,2,1,1}, {1, 3, 2,1,1}, {2,3,1,1,1}});
-    fits = lexicase_fitness(pop, DEFAULT);
+    fits = LexicaseFitness(pop);
     CHECK(fits[{3,1,2,1,1}] == Approx(.5));
     CHECK(fits[{1,3,2,1,1}] == Approx(.333333));
     CHECK(fits[{2,3,1,1,1}] == Approx(.16666667));
 
+    emp::vector<emp::vector<double>> pop_d = emp::vector<emp::vector<double>>({{3.1,1.1,2.1,1.1,1.1}, {1.1, 3.1, 2.1,1.1,1.1}, {2.1,3.1,1.1,1.1,1.1}});
+    std::map<emp::vector<double>, double> fits_d = LexicaseFitness(pop_d);
+    CHECK(fits_d[{3.1,1.1,2.1,1.1,1.1}] == Approx(.5));
+    CHECK(fits_d[{1.1,3.1,2.1,1.1,1.1}] == Approx(.333333));
+    CHECK(fits_d[{2.1,3.1,1.1,1.1,1.1}] == Approx(.16666667));
+
+    fits_d = LexicaseFitness(pop_d,1);
+    CHECK(fits_d[{3.1,1.1,2.1,1.1,1.1}] == Approx(0));
+    CHECK(fits_d[{1.1,3.1,2.1,1.1,1.1}] == Approx(.25));
+    CHECK(fits_d[{2.1,3.1,1.1,1.1,1.1}] == Approx(.75));
+
+
     emp::Random r;
-    pop = make_pop(r, 20, 10);
-    fits = lexicase_fitness(pop, DEFAULT);
+
+    pop.resize(20);
+
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(10);
+        for (int loc = 0; loc < 10; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
     double total = 0;
     for (auto p : fits) {
         total += p.second;
     }
     CHECK(total == Approx(1));
 
-    pop = make_pop(r, 20, 12);
-    fits = lexicase_fitness(pop, DEFAULT);
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(12);
+        for (int loc = 0; loc < 12; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
     total = 0;
     for (auto p : fits) {
         total += p.second;
     }
     CHECK(total == Approx(1));
 
-    pop = make_pop(r, 20, 13);
-    fits = lexicase_fitness(pop, DEFAULT);
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(13);
+        for (int loc = 0; loc < 13; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
     total = 0;
     for (auto p : fits) {
         total += p.second;
     }
     CHECK(total == Approx(1));
 
-    pop = make_pop(r, 20, 14);
-    fits = lexicase_fitness(pop, DEFAULT);
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(14);
+        for (int loc = 0; loc < 14; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
     total = 0;
     for (auto p : fits) {
         total += p.second;
     }
     CHECK(total == Approx(1));
 
-    pop = make_pop(r, 20, 18);
-    fits = lexicase_fitness(pop, DEFAULT);
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(18);
+        for (int loc = 0; loc < 18; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
     total = 0;
     for (auto p : fits) {
         total += p.second;
     }
     CHECK(total == Approx(1));
+
+}
+
+TEST_CASE("Tournament", "[selection_schemes]") {
+    emp::vector<org_t> pop = emp::vector<org_t>({{3,3,3}, {3, 3, 3}, {3,3,3}});
+    std::map<org_t, double> fits = TournamentFitness(pop, 2);
+    CHECK(fits[{3,3,3}] == Approx(.3333333));    
+
+    fits = TournamentFitness(pop, 3);
+    CHECK(fits[{3,3,3}] == Approx(.3333333));
+
+    fits = TournamentFitness(pop, 1);
+    CHECK(fits[{3,3,3}] == Approx(.3333333));
+
+
+    pop = emp::vector<org_t>({{0,3,0}, {0, 3, 3}, {3,3,0}});
+    fits = TournamentFitness(pop, 3);
+    CHECK(fits[{0,3,3}] == Approx(13.0/27.0));    
+    CHECK(fits[{3,3,0}] == Approx(13.0/27.0));    
+    CHECK(fits[{0,3,0}] == Approx(1.0/27.0));    
+
+    pop = emp::vector<org_t>({{0,3,0}, {0, 3, 3}, {3,3,3}});
+    fits = TournamentFitness(pop, 3);
+    CHECK(fits[{0,3,3}] == Approx(7.0/27.0));    
+    CHECK(fits[{3,3,3}] == Approx(19.0/27.0));    
+    CHECK(fits[{0,3,0}] == Approx(1.0/27.0));    
+
+    pop = emp::vector<org_t>({{0,3,3}, {3, 3, 3}, {3,3,3}});
+    fits = TournamentFitness(pop, 3);
+    CHECK(fits[{3,3,3}] == Approx(13.0/27.0));    
+    CHECK(fits[{0,3,3}] == Approx(1.0/27.0));    
+
+    fits = TournamentFitness(pop, 2);
+    CHECK(fits[{3,3,3}] == Approx(.44444));    
+    CHECK(fits[{0,3,3}] == Approx(.11111));    
+
+    fits = TournamentFitness(pop, 1);
+    CHECK(fits[{3,3,3}] == Approx(.3333333));    
+    CHECK(fits[{0,3,3}] == Approx(.3333333));    
 
 }
 
@@ -126,18 +262,26 @@ TEST_CASE("Fitness sharing", "[selection_schemes]") {
 
     pop = emp::vector<org_t>({{3,1,2,1,1}, {1, 3, 2,1,1}, {2,3,1,1,1}});
     fits = sharing_fitness(pop, DEFAULT);
-    CHECK(fits[{3,1,2,1,1}] == Approx(.666666));
+    CHECK(fits[{3,1,2,1,1}] == Approx(.5555556));
     CHECK(fits[{1,3,2,1,1}] == Approx(.333333));
-    CHECK(fits[{2,3,1,1,1}] == Approx(0));
+    CHECK(fits[{2,3,1,1,1}] == Approx(.111111));
 
     pop = emp::vector<org_t>({{10,1}, {1, 10}, {1,1}});
     fits = sharing_fitness(pop, DEFAULT);
-    CHECK(fits[{10,1}] == Approx(.5));
-    CHECK(fits[{1,10}] == Approx(.5));
-    CHECK(fits[{1,1}] == Approx(0));
+    CHECK(fits[{10,1}] == Approx(.444444));
+    CHECK(fits[{1,10}] == Approx(.444444));
+    CHECK(fits[{1,1}] == Approx(.111111));
 
     emp::Random r;
-    pop = make_pop(r, 20, 10);
+
+    pop.resize(20);
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(10);
+        for (int loc = 0; loc < 10; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
     fits = sharing_fitness(pop, DEFAULT);
     double total = 0;
     for (auto p : fits) {
@@ -155,19 +299,26 @@ TEST_CASE("Eco-EA", "[selection_schemes]") {
 
     pop = emp::vector<org_t>({{3,1,2,1,1}, {1, 3, 2,1,1}, {2,3,1,1,1}});
     fits = eco_ea_fitness(pop, DEFAULT);
-    CHECK(fits[{3,1,2,1,1}] == Approx(.666666));
-    CHECK(fits[{1,3,2,1,1}] == Approx(.1666666));
-    CHECK(fits[{2,3,1,1,1}] == Approx(.16666667));
+    CHECK(fits[{3,1,2,1,1}] == Approx(5.0/9.0));
+    CHECK(fits[{1,3,2,1,1}] == Approx(2.0/9.0));
+    CHECK(fits[{2,3,1,1,1}] == Approx(2.0/9.0));
 
     pop = emp::vector<org_t>({{10,1,2,1,1}, {1, 3, 2,1,1}, {2,3,1,1,1}, {2,1,1,1,1}});
     fits = eco_ea_fitness(pop, DEFAULT);
-    CHECK(fits[{10,1,2,1,1}] == Approx(.5));
-    CHECK(fits[{1,3,2,1,1}] == Approx(0.0833335));
-    CHECK(fits[{2,3,1,1,1}] == Approx(0.0833335));
-    CHECK(fits[{2,1,1,1,1}] == Approx(.3333333));
+    CHECK(fits[{10,1,2,1,1}] == Approx(7.0/16.0));
+    CHECK(fits[{1,3,2,1,1}] == Approx(2.0/16.0));
+    CHECK(fits[{2,3,1,1,1}] == Approx(2.0/16.0));
+    CHECK(fits[{2,1,1,1,1}] == Approx(5.0/16.0));
 
     emp::Random r;
-    pop = make_pop(r, 20, 10);
+    pop.resize(20);
+    for (int org = 0; org < 20; ++org) {
+        pop[org].resize(10);
+        for (int loc = 0; loc < 10; ++loc) {
+            pop[org].push_back(r.GetRandGeometric(.5));
+        }
+    } 
+
     fits = eco_ea_fitness(pop, DEFAULT);
     double total = 0;
     for (auto p : fits) {
@@ -210,31 +361,4 @@ TEST_CASE("Calc competition", "[helpers]") {
 
     g = calc_competition(pop, test_fun);
     CHECK(g.GetWeight(0,1) == -1);
-}
-
-TEST_CASE("Controller", "[controller]") {
-    Controller c;
-    c.SetPopSize(50);
-    CHECK(c.GetPopSize() == 50);
-    CHECK(c.GetPop().size() == 10);
-    c.Regenerate();
-    CHECK(c.GetPop().size() == 50);
-
-    c.SetNTraits(9);
-    c.SetSigmaShare(3);
-    c.SetAlpha(.1);
-    c.SetCost(2);
-    c.SetCf(.01);
-    c.SetNicheWidth(4);
-    c.SetMaxScore(100);
-
-    c.Regenerate();
-
-    CHECK(c.GetPop()[0].size() == 9);
-    CHECK(c.GetSigmaShare() == 3);
-    CHECK(Alpha::Get(c.settings) == .1);
-    CHECK(Cost::Get(c.settings) == 2);
-    CHECK(Cf::Get(c.settings) == .01);
-    CHECK(NicheWidth::Get(c.settings) == 4);
-    CHECK(MaxScore::Get(c.settings) == 100);
 }
