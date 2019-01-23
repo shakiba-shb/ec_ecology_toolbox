@@ -372,9 +372,12 @@ emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop,
         std::map<PHEN_T, double> new_fits = fit_fun(curr, attrs);
         for (size_t j = 0; j < pop.size(); j++ ) {
             if (i == j) {continue;}
-            double effect = fitnesses[curr[j]] - new_fits[curr[j]];
-            if (effect != 0) {
-                effects.AddEdge(i, j, effect);
+
+            // In terms of floating-point imprecision issues, it's much better
+            // to check for equality than doing the subtraction and checking
+            // for the result to be 0
+            if (!almost_equal(fitnesses[curr[j]], new_fits[curr[j]], 10)) {
+                effects.AddEdge(i, j, fitnesses[curr[j]] - new_fits[curr[j]]);
             }
             // std::cout << effect << std::endl;
         }
