@@ -136,7 +136,7 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     CHECK(fits_d[{1.1,3.1,2.1,1.1,1.1}] == Approx(.333333));
     CHECK(fits_d[{2.1,3.1,1.1,1.1,1.1}] == Approx(.16666667));
 
-    fits_d = LexicaseFitness(pop_d, emp::tools::Merge(Epsilon(1), DEFAULT));
+    fits_d = LexicaseFitness(pop_d, emp::tools::Merge(Epsilon(1.0), DEFAULT));
     CHECK(fits_d[{3.1,1.1,2.1,1.1,1.1}] == Approx(0));
     CHECK(fits_d[{1.1,3.1,2.1,1.1,1.1}] == Approx(.25));
     CHECK(fits_d[{2.1,3.1,1.1,1.1,1.1}] == Approx(.75));
@@ -380,7 +380,7 @@ TEST_CASE("Calc competition", "[helpers]") {
     // The following are regression tests (I have not done the math to confirm the numbers are right
     // but they seem plausible and accuracy is being tested elsewhere)
 
-    g = CalcCompetition(pop, do_eco_ea<org_t>, emp::tools::Merge(NicheWidth(1), DEFAULT));
+    g = CalcCompetition(pop, do_eco_ea<org_t>, emp::tools::Merge(NicheWidth(1.0), DEFAULT));
 
     CHECK(g.GetWeight(0,0) == 0);
     CHECK(g.GetWeight(0,1) == Approx(.1875));
