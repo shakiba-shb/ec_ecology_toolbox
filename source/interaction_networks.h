@@ -38,11 +38,11 @@ constexpr auto DEFAULT{MakeAttrs(SigmaShare(8.0),
                                  Cf(.0025),                                 
                                  NicheWidth(3.0),
                                  MaxScore(10.0),
-                                 ResourceInflow(2000),
+                                 ResourceInflow(2000.0),
                                  ResourceOutflow(.01),
-                                 MaxBonus(5),
+                                 MaxBonus(5.0),
                                  TournamentSize(2),
-                                 Epsilon(0))};
+                                 Epsilon(0.0))};
 
 using all_attrs = emp::tools::Attrs<typename SigmaShare::value_t<double>, typename Alpha::value_t<double>, 
                         typename Cost::value_t<double>, typename Cf::value_t<double>,
@@ -361,8 +361,8 @@ emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop,
         // std::cout << effects.GetLabel(i) << std::endl;
 
         emp::vector<PHEN_T> curr = pop;
-        for (int & ax : curr[i]) {
-            ax = 0; // Replace org with null org so pop size stays same
+        for (size_t ax = 0; ax < curr[i].size(); ax++) {
+            curr[i][ax] = 0; // Replace org with null org so pop size stays same
         }
 
         std::map<PHEN_T, double> new_fits = fit_fun(curr, attrs);
