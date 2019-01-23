@@ -101,8 +101,8 @@ emp::vector<PHEN_T> FindHighest(emp::vector<PHEN_T> & pop, int axis, double epsi
     return winners;
 }
 
-/// Multiply all of the ints in @param nums togetehr.
-long int VectorProduct(emp::vector<int> nums) {
+/// Multiply all of the ints in @param nums together.
+long int VectorProduct(const emp::vector<int> & nums) {
     long int result = 1;
 
     for (int num : nums) {
@@ -118,7 +118,9 @@ emp::vector<PHEN_T> FilterImpossible(emp::vector<PHEN_T> & pop, emp::vector<int>
     
     for (int ax : axes) {
         emp::vector<PHEN_T> best = FindHighest(pop, ax, epsilon);
-        possible = emp::set_union(possible, best);
+        for (PHEN_T & p : best) {
+            possible.insert(p);
+        }
     }
 
     emp::vector<PHEN_T> result(possible.begin(), possible.end());
@@ -184,7 +186,9 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
     // std::cout << "post processing: " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
     for (int ax : axes) {
-        // std::cout << "Axis: " << ax << " out of " << emp::to_string(axes) << std::endl;
+        // if (perm_levels.size() == 0) {
+        //     std::cout << "Axis: " << ax << " out of " << emp::to_string(axes) << std::endl;
+        // }
         emp::vector<PHEN_T> winners = FindHighest(pop, ax, epsilon);
         if (winners.size() == 1) { // Not a tie
             // std::cout << "1 winner: " << emp::to_string(winners[0]) << " Controls " << (double)emp::Factorial(axes.size() - 1)<< std::endl;
