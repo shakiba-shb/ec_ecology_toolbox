@@ -19,6 +19,7 @@
 #include "tools/Graph.h"
 #include "Evolve/Resource.h"
 
+#include <math.h>  
 
 DEFINE_ATTR(SigmaShare);
 DEFINE_ATTR(Alpha);
@@ -231,27 +232,28 @@ std::map<PHEN_T, double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs at
 }
 
 template <typename PHEN_T>
-void TournamentHelper(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, int t_size = 2){
+void TournamentHelper(std::map<PHEN_T, double> & fit_map, int t_size = 2){
 
     std::map<PHEN_T, double> base_fit_map = fit_map;
+    double pop_size = base_fit_map.size();
 
-    for (PHEN_T & org : pop) {
+    for (auto & org : base_fit_map) {
         double less = 0.0;
         double equal = 0.0; 
 
-        for (PHEN_T & org2 : pop) {
-            if (almost_equal(base_fit_map[org2], base_fit_map[org], 10)) {
+        for (auto & org2 : base_fit_map) {
+            if (almost_equal(org2.second, org.second, 10)) {
                 equal++;
-            } else if (base_fit_map[org2] < base_fit_map[org]) {
+            } else if (org2.second < org.second) {
                 less++;
             }
         }
 
-        long double p_less = less/(double)pop.size();
-        long double p_equal = equal/(double)pop.size();
-        long double p_self = 1/(double)pop.size();
+        long double p_less = less/pop_size;
+        long double p_equal = equal/pop_size;
+        long double p_self = 1/pop_size;
 
-        fit_map[org] = (pow(p_equal + p_less, t_size) - pow(p_less, t_size)) * p_self/p_equal;
+        fit_map[org.first] = (pow(p_equal + p_less, t_size) - pow(p_less, t_size)) * p_self/p_equal;
     }
 }
 
@@ -262,7 +264,7 @@ std::map<PHEN_T, double> TournamentFitness(emp::vector<PHEN_T> & pop, all_attrs 
     for (PHEN_T & org : pop) {
         fit_map[org] = emp::Sum(org);
     }
-    TournamentHelper(fit_map, pop, TournamentSize::Get(attrs));
+    TournamentHelper(fit_map, TournamentSize::Get(attrs));
     return fit_map;
 }
 
@@ -285,7 +287,7 @@ std::map<PHEN_T, double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs att
             // we could make this configurable
             double dist = emp::EuclideanDistance(org1, org2);
             if (dist < SigmaShare::Get(attrs)) {
-                niche_count += 1 - emp::Pow((dist/SigmaShare::Get(attrs)), Alpha::Get(attrs));
+                niche_count += 1 - pow((dist/SigmaShare::Get(attrs)), Alpha::Get(attrs));
             } 
         }
 
@@ -293,7 +295,7 @@ std::map<PHEN_T, double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs att
         // increases its own niche count by 1
         fit_map[org1] = emp::Sum(org1) / niche_count;
     }
-    TournamentHelper(fit_map, pop, TournamentSize::Get(attrs));
+    TournamentHelper(fit_map, TournamentSize::Get(attrs));
 
     return fit_map;    
 };
@@ -327,12 +329,12 @@ std::map<PHEN_T, double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs
         }
         for (PHEN_T & org : pop) {
             if (org[axis] >= NicheWidth::Get(attrs)) {
-                fit_map[org] *= emp::Pow2(std::min(Cf::Get(attrs)*res*emp::Pow(org[axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
+                fit_map[org] *= pow(2,std::min(Cf::Get(attrs)*res*pow(org[axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
             }   
         }
     }
 
-    TournamentHelper(fit_map, pop, TournamentSize::Get(attrs));
+    TournamentHelper(fit_map, TournamentSize::Get(attrs));
 
     return fit_map;
 };
