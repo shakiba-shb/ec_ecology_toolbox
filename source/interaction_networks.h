@@ -208,7 +208,7 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
 
 
 template <typename PHEN_T>
-std::map<PHEN_T, double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs = DEFAULT) {
+emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs = DEFAULT) {
 
     emp_assert(pop.size() > 0);
     std::map<PHEN_T, double> fit_map;
@@ -228,23 +228,27 @@ std::map<PHEN_T, double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs at
         // std::cout << "Post div: " << fit_map[org] << " Divided by: " << (double)emp::Factorial(n_funs) << std::endl;
     }
 
-    return fit_map;
+    emp::vector<double> result;
+    for (PHEN_T & org : pop) {
+        result.push_back(fit_map[org]);
+    }
+
+    return result;
 }
 
-template <typename PHEN_T>
-void TournamentHelper(std::map<PHEN_T, double> & fit_map, int t_size = 2){
+void TournamentHelper(emp::vector<double> & fit_map, int t_size = 2){
 
-    std::map<PHEN_T, double> base_fit_map = fit_map;
+    emp::vector<double> base_fit_map = fit_map;
     double pop_size = base_fit_map.size();
 
-    for (auto & org : base_fit_map) {
+    for (int i = 0; i < fit_map.size(); i++) {
         double less = 0.0;
         double equal = 0.0; 
 
         for (auto & org2 : base_fit_map) {
-            if (almost_equal(org2.second, org.second, 10)) {
+            if (almost_equal(org2, base_fit_map[i], 10)) {
                 equal++;
-            } else if (org2.second < org.second) {
+            } else if (org2 < base_fit_map[i]) {
                 less++;
             }
         }
@@ -253,39 +257,40 @@ void TournamentHelper(std::map<PHEN_T, double> & fit_map, int t_size = 2){
         long double p_equal = equal/pop_size;
         long double p_self = 1/pop_size;
 
-        fit_map[org.first] = (pow(p_equal + p_less, t_size) - pow(p_less, t_size)) * p_self/p_equal;
+        fit_map[i] = (pow(p_equal + p_less, t_size) - pow(p_less, t_size)) * p_self/p_equal;
     }
 }
 
 template <typename PHEN_T>
-std::map<PHEN_T, double> TournamentFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
+emp::vector<double> TournamentFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
     emp_assert(pop.size() > 0);
-    std::map<PHEN_T, double> fit_map;
+    // emp::vector<double> fit_map;
+    emp::vector<double> fit_map;
     for (PHEN_T & org : pop) {
-        fit_map[org] = emp::Sum(org);
+        fit_map.push_back(emp::Sum(org));
     }
     TournamentHelper(fit_map, TournamentSize::Get(attrs));
     return fit_map;
 }
 
 template <typename PHEN_T>
-std::map<PHEN_T, double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
+emp::vector<double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
     // std::cout << "SHARING" << std::endl;
-    std::map<PHEN_T, double> fit_map;
+    emp::vector<double> fit_map;
 
     // std::cout << SigmaShare::Get(attrs) << std::endl;
 
-    for (PHEN_T & org : pop) {
-        fit_map[org] = 1.0;
+    for (int i = 0; i < pop.size(); i++) {
+        fit_map.push_back(1.0);
     }
 
-    for (PHEN_T & org1 : pop) {
+    for (int i = 0; i < pop.size(); i++) {
         double niche_count = 0;
 
         for (PHEN_T & org2 : pop) {
             // Sharing function is euclidean distance
             // we could make this configurable
-            double dist = emp::EuclideanDistance(org1, org2);
+            double dist = emp::EuclideanDistance(pop[i], org2);
             if (dist < SigmaShare::Get(attrs)) {
                 niche_count += 1 - pow((dist/SigmaShare::Get(attrs)), Alpha::Get(attrs));
             } 
@@ -293,7 +298,7 @@ std::map<PHEN_T, double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs att
 
         // Don't worry, niche_count will always be at least one because each individual
         // increases its own niche count by 1
-        fit_map[org1] = emp::Sum(org1) / niche_count;
+        fit_map[i] = emp::Sum(pop[i]) / niche_count;
     }
     TournamentHelper(fit_map, TournamentSize::Get(attrs));
 
@@ -301,17 +306,16 @@ std::map<PHEN_T, double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs att
 };
 
 template <typename PHEN_T>
-std::map<PHEN_T, double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
+emp::vector<double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
     // std::cout << "ECO-EA" << std::endl;
     emp_assert(pop.size() > 0);
 
-    std::map<PHEN_T, double> base_fit_map;
-    std::map<PHEN_T, double> fit_map;
+    emp::vector<double> fit_map;
 
     size_t n_funs = pop[0].size();
 
-    for (PHEN_T & org : pop) {
-        fit_map[org] = 1.0;
+    for (int i = 0; i < pop.size(); i++) {
+        fit_map.push_back(1.0);
     }
 
     for (int axis : emp::NRange(0, (int)n_funs)) {
@@ -327,9 +331,9 @@ std::map<PHEN_T, double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs
         if (count > 0) {
             res /= count; // Ignores resource accumulation, but that's okay for interactio  }
         }
-        for (PHEN_T & org : pop) {
-            if (org[axis] >= NicheWidth::Get(attrs)) {
-                fit_map[org] *= pow(2,std::min(Cf::Get(attrs)*res*pow(org[axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
+        for (int i = 0; i < pop.size(); i++) {
+            if (pop[i][axis] >= NicheWidth::Get(attrs)) {
+                fit_map[i] *= pow(2,std::min(Cf::Get(attrs)*res*pow(pop[i][axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
             }   
         }
     }
@@ -340,27 +344,27 @@ std::map<PHEN_T, double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs
 };
 
 template <typename PHEN_T>
-std::function<std::map<PHEN_T, double>(emp::vector<PHEN_T>&, all_attrs)> do_lexicase = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return LexicaseFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_lexicase = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return LexicaseFitness(pop,attrs);};
 
 template <typename PHEN_T>
-std::function<std::map<PHEN_T, double>(emp::vector<PHEN_T>&, all_attrs)> do_tournament = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return TournamentFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_tournament = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return TournamentFitness(pop,attrs);};
 
 template <typename PHEN_T>
-std::function<std::map<PHEN_T, double>(emp::vector<PHEN_T>&, all_attrs)> do_eco_ea = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return EcoEAFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_eco_ea = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return EcoEAFitness(pop,attrs);};
 
 template <typename PHEN_T>
-std::function<std::map<PHEN_T, double>(emp::vector<PHEN_T>&, all_attrs)> do_sharing = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return SharingFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_sharing = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return SharingFitness(pop,attrs);};
 
 
 template <typename PHEN_T>
 emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop, 
-                        std::function<std::map<PHEN_T, double>(emp::vector<PHEN_T>&, all_attrs)> fit_fun,
+                        std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> fit_fun,
                         all_attrs attrs=DEFAULT) {
 
     emp::WeightedGraph effects(pop.size());
 
 
-    std::map<PHEN_T, double> fitnesses = fit_fun(pop, attrs);
+    emp::vector<double> fitnesses = fit_fun(pop, attrs);
 
     for (size_t i = 0; i < pop.size(); i++) {
         effects.SetLabel(i, emp::to_string(pop[i]));
@@ -371,15 +375,15 @@ emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop,
             curr[i][ax] = 0; // Replace org with null org so pop size stays same
         }
 
-        std::map<PHEN_T, double> new_fits = fit_fun(curr, attrs);
+        emp::vector<double> new_fits = fit_fun(curr, attrs);
         for (size_t j = 0; j < pop.size(); j++ ) {
             if (i == j) {continue;}
 
             // In terms of floating-point imprecision issues, it's much better
             // to check for equality than doing the subtraction and checking
             // for the result to be 0
-            if (!almost_equal(fitnesses[curr[j]], new_fits[curr[j]], 10)) {
-                effects.AddEdge(i, j, fitnesses[curr[j]] - new_fits[curr[j]]);
+            if (!almost_equal(fitnesses[j], new_fits[j], 10)) {
+                effects.AddEdge(i, j, fitnesses[j] - new_fits[j]);
             }
             // std::cout << effect << std::endl;
         }
