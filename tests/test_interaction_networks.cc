@@ -75,16 +75,19 @@ TEST_CASE("FilterImposssible" , "[helpers]") {
 TEST_CASE("PruneAxes", "[helpers]") {
     emp::vector<org_t> v({{1,2,3}, {2, 1, 3}, {1,3,3}});
     emp::vector<int> axes({0,1,2});
-    emp::vector<int> result = PruneAxes(axes, v);
+    emp::vector<int> result(axes);
+    PruneAxes(result, v);
 
     CHECK(result.size() == 2);
     CHECK(emp::Has(result, 0));
     CHECK(emp::Has(result, 1));
 
     emp::vector<emp::vector<double> > v2({{1.5,2.1,3.1}, {1.5, 1.1, 1.1}, {1.1,1.1,1.1}, {1.5,0,0}, {1.1,0,0}, {1.2,1,3.1}});
-    result = PruneAxes(axes, v2);
+    result = axes;
+    PruneAxes(result, v2);
     CHECK(result.size() == 3);
-    result = PruneAxes(axes, v2, .4);
+    result = axes;
+    PruneAxes(result, v2, .4);
     CHECK(result.size() == 2);
     CHECK(emp::Has(result, 1));
     CHECK(emp::Has(result, 2));

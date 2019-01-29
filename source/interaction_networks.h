@@ -144,8 +144,9 @@ void FilterImpossible(emp::vector<PHEN_T> & pop, emp::vector<int> & axes, double
 }
 
 template <typename PHEN_T>
-emp::vector<int> PruneAxes(emp::vector<int> & axes, emp::vector<PHEN_T> & pop, double epsilon = 0) {
-    emp::vector<int> result;
+void PruneAxes(emp::vector<int> & axes, emp::vector<PHEN_T> & pop, double epsilon = 0) {
+    
+    emp::vector<int> to_remove;
 
     for (int ax : axes) {
         // std::cout << "Evaluating " << ax << std::endl;
@@ -172,19 +173,115 @@ emp::vector<int> PruneAxes(emp::vector<int> & axes, emp::vector<PHEN_T> & pop, d
             }
         }
 
-        if (include) {
-            result.push_back(ax);
+        if (!include) {
+            to_remove.push_back(ax);
         }
     }
-
-    return result;
-
+    for (int ax : to_remove) {
+        axes.erase(std::remove(axes.begin(), axes.end(), ax), axes.end());
+    }
 }
 
 template <typename PHEN_T>
-void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
+void HandleTwoOrgs(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
+    double wins = 0;
+    double losses = 0;
+    for (int ax : axes) {
+        if (winners[0][ax] > winners[1][ax] + epsilon) {
+            wins++;
+        } else if (winners[1][ax] > winners[0][ax] + epsilon) {
+            losses++;
+        }
+    }
+    if (wins > 0 || losses > 0) {
+        fit_map[winners[0]] += (wins/(wins+losses)) * (1.0/VectorProduct(perm_levels));//(double)emp::Factorial(axes.size() - 1);
+        fit_map[winners[1]] += (losses/(wins+losses)) * (1.0/VectorProduct(perm_levels));//(double)emp::Factorial(axes.size() - 1);
+    } else {
+        fit_map[winners[0]] += .5 * (1.0/VectorProduct(perm_levels));//(double)emp::Factorial(axes.size() - 1);
+        fit_map[winners[1]] += .5 * (1.0/VectorProduct(perm_levels));//(double)emp::Factorial(axes.size() - 1);                
+    }
+}
+
+// template <typename PHEN_T>
+// double SizeTieSet(PHEN_T & org, std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
+//     emp::vector<int> temp = FindHighestIndices(winners, axes[0], epsilon);
+//     std::set<int> intersect_set(temp.begin(), temp.end());
+//     for (int ax : axes) {
+//         intersect_set = emp::intersection(intersect_set, FindHighestIndices(winners, ax, epsilon));
+//     }
+
+//     return (double)intersect_set.size();
+// }
+
+// template <typename PHEN_T>
+// void OrgWinCondition(PHEN_T & org, std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
+//     // if (axes.size() == 1) {
+//     //     fit_map[org] += (1.0/VectorProduct(perm_levels)) * (1.0/(double)winners.size());
+//     //     return;
+//     // }
+    
+//     // PruneAxes(axes, winners, epsilon);
+
+//     emp::vector<int> wins;
+//     emp::vector<int> ties;
+//     emp::vector<int> losses;
+//     for (int ax : axes) {
+//         bool win = true;
+//         bool tie = true;
+//         for (auto & other : winners) {
+//             if (other[ax] > org[ax]+epsilon) {
+//                 win = false;
+//                 tie = false;
+//                 break;
+//             } else if (!(org[ax] > other[ax] + epsilon) && (other != org)) {
+//                 win = false;
+//             }
+//         }
+//         if (win) {
+//             wins.push_back(ax);
+//         } else if(tie) {
+//             ties.push_back(ax);
+//         } else {
+//             losses.push_back(ax);
+//         }
+//     }
+
+
+//     if (wins == axes.size()) {
+//         fit_map[org] += 1.0/VectorProduct(perm_levels);
+//     } else {
+//         perm_levels.push_back(axes.size());
+//         fit_map[org] += (wins/(double)axes.size()) * 1.0/VectorProduct(perm_levels);
+//         // double tie_prob = 0.0;
+//         // for (size_t i = 0; i < ties.size()-1; i++) {
+//         //     tie_prob += (wins/(double)axes.size()) * pow(losses/(double)axes.size(), i);
+//         for (int ax : ties) {
+//             std::cout<< "exploring " << ax << emp::to_string(ties) << std::endl; 
+//             emp::vector<int> next_axes = axes;
+//             next_axes.erase(std::remove(next_axes.begin(), next_axes.end(), ax), next_axes.end());
+//             OrgWinCondition(org, fit_map, FindHighest(winners, ax, epsilon), next_axes, perm_levels, epsilon);
+//         }
+//         // }
+//         // tie_prob += pow(losses/(double)axes.size(), ties.size()-1) * 1.0/SizeTieSet(org, fit_map, winners, ties, perm_levels, epsilon); // Actual tie
+//         // fit_map[org] += tie_prob * 1.0/VectorProduct(perm_levels);
+//     }
+
+// }
+
+// template <typename PHEN_T>
+// void HandleThreeOrgs(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
+//     for (PHEN_T & org : winners) {
+//         OrgWinCondition(org, fit_map, winners, axes, perm_levels, epsilon);
+//     }
+
+// }
+
+template <typename PHEN_T>
+void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
     // std::cout << "begining round of recursion " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
+    // std::cout << emp::to_string(pop) << emp::to_string(axes) << std::endl;
+ 
     if (axes.size() == 1) {
         emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
         // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
@@ -194,7 +291,7 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
         return;
     }
 
-    axes = PruneAxes(axes, pop, epsilon);
+    PruneAxes(axes, pop, epsilon);
     perm_levels.push_back(axes.size());
 
     FilterImpossible(pop, axes, epsilon);
@@ -202,20 +299,22 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
     // std::cout << "post processing: " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
     for (int ax : axes) {
-        // if (perm_levels.size() == 0) {
-        //     std::cout << "Axis: " << ax << " out of " << emp::to_string(axes) << std::endl;
-        // }
+        if (perm_levels.size() == 1) {
+            std::cout << "Axis: " << ax << " out of " << emp::to_string(axes) << std::endl;
+        }
         emp::vector<PHEN_T> winners = FindHighest(pop, ax, epsilon);
+        emp::vector<int> next_axes = axes;
+        next_axes.erase(std::remove(next_axes.begin(), next_axes.end(), ax), next_axes.end());
+        FilterImpossible(winners, next_axes, epsilon);
+
         if (winners.size() == 1) { // Not a tie
             // std::cout << "1 winner: " << emp::to_string(winners[0]) << " Controls " << (double)emp::Factorial(axes.size() - 1)<< std::endl;
             fit_map[winners[0]] += 1.0/VectorProduct(perm_levels);//(double)emp::Factorial(axes.size() - 1);
+        } else if (winners.size() == 2) { // optimization
+            HandleTwoOrgs(fit_map, winners, next_axes, perm_levels, epsilon);
+        // } else if (winners.size() < 100 && next_axes.size() > 2) { // optimization
+        //     HandleThreeOrgs(fit_map, winners, next_axes, perm_levels, epsilon);
         } else { // tie
-            emp::vector<int> next_axes;
-            for (int new_ax : axes) {
-                if (new_ax != ax) {
-                    next_axes.push_back(new_ax);
-                }
-            }
             TraverseDecisionTree(fit_map, winners, next_axes, perm_levels, epsilon);
         }
     }
@@ -383,7 +482,7 @@ emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop,
 
     for (size_t i = 0; i < pop.size(); i++) {
         effects.SetLabel(i, emp::to_string(pop[i]));
-        // std::cout << effects.GetLabel(i) << std::endl;
+        std::cout << effects.GetLabel(i) << std::endl;
 
         emp::vector<PHEN_T> curr = pop;
         for (size_t ax = 0; ax < curr[i].size(); ax++) {
