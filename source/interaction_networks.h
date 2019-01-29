@@ -299,9 +299,9 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
     // std::cout << "post processing: " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
     for (int ax : axes) {
-        if (perm_levels.size() == 1) {
-            std::cout << "Axis: " << ax << " out of " << emp::to_string(axes) << std::endl;
-        }
+        // if (perm_levels.size() == 1) {
+        //     std::cout << "Axis: " << ax << " out of " << emp::to_string(axes) << std::endl;
+        // }
         emp::vector<PHEN_T> winners = FindHighest(pop, ax, epsilon);
         emp::vector<int> next_axes = axes;
         next_axes.erase(std::remove(next_axes.begin(), next_axes.end(), ax), next_axes.end());
@@ -482,7 +482,7 @@ emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop,
 
     for (size_t i = 0; i < pop.size(); i++) {
         effects.SetLabel(i, emp::to_string(pop[i]));
-        std::cout << effects.GetLabel(i) << std::endl;
+        // std::cout << effects.GetLabel(i) << std::endl;
 
         emp::vector<PHEN_T> curr = pop;
         for (size_t ax = 0; ax < curr[i].size(); ax++) {
