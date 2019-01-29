@@ -53,19 +53,23 @@ TEST_CASE("FindHighest", "[helpers]") {
 TEST_CASE("FilterImposssible" , "[helpers]") {
     emp::vector<emp::vector<double> > v({{1.5,2.1,3.1}, {1.5, 1.1, 1.1}, {1.1,1.1,1.1}, {1.5,0,0}, {0,0,0}, {1,1,3.1}});
     emp::vector<int> axes({0,1,2});
-    auto res = FilterImpossible(v, axes);
-    CHECK(res.size() == 4);
+    emp::vector<emp::vector<double> > v2 = v;
+    FilterImpossible(v2, axes);
+    CHECK(v2.size() == 4);
 
-    res = FilterImpossible(v, axes, .4);
-    CHECK(res.size() == 5);
+    v2 = v;
+    FilterImpossible(v2, axes, .4);
+    CHECK(v2.size() == 5);
 
     axes = {1};
-    res = FilterImpossible(v, axes);
-    CHECK(res.size() == 1);
+    v2 = v;
+    FilterImpossible(v2, axes);
+    CHECK(v2.size() == 1);
 
     axes = {2};
-    res = FilterImpossible(v, axes);
-    CHECK(res.size() == 2);
+    v2 = v;
+    FilterImpossible(v2, axes);
+    CHECK(v2.size() == 2);
 }
 
 TEST_CASE("PruneAxes", "[helpers]") {

@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <limits>
+#include <unordered_set>
 
 #include "base/vector.h"
 #include "base/assert.h"
@@ -77,29 +78,40 @@ typename std::enable_if<std::numeric_limits<T>::is_integer && std::numeric_limit
 /// If epsilon lexicase is being used, specify a value of @param epsilon
 /// to include everything within that range of the highest value
 template <typename PHEN_T>
-emp::vector<PHEN_T> FindHighest(emp::vector<PHEN_T> & pop, int axis, double epsilon = 0) {
+emp::vector<int> FindHighestIndices(emp::vector<PHEN_T> & pop, int axis, double epsilon = 0) {
     double best = -1;
-    emp::vector<PHEN_T> winners;
+    emp::vector<int> winners;
 
-    for (PHEN_T & org : pop) {
-        if (org[axis] > best) {
-            best = org[axis];
+    for (size_t i = 0; i < pop.size(); i++) {
+        if (pop[i][axis] > best) {
+            best = pop[i][axis];
             winners.resize(0);
-            winners.push_back(org);
-        } else if (almost_equal(org[axis], best, 5)) {
-            winners.push_back(org);
+            winners.push_back(i);
+        } else if (almost_equal(pop[i][axis], best, 5)) {
+            winners.push_back(i);
         }
     }
 
     if (epsilon) {
         winners.resize(0);
-        for (PHEN_T & org : pop) {
-            if (org[axis] + epsilon >= best) {
-                winners.push_back(org);
+        for (size_t i = 0; i < pop.size(); i++) {
+            if (pop[i][axis] + epsilon >= best) {
+                winners.push_back(i);
             }
         }
     }
     return winners;
+}
+
+template <typename PHEN_T>
+emp::vector<PHEN_T> FindHighest(emp::vector<PHEN_T> & pop, int axis, double epsilon = 0) {
+    // From https://stackoverflow.com/questions/9650679/c-select-a-subset-of-a-stdvector-based-predefined-element-indices
+
+    emp::vector<int> highest = FindHighestIndices(pop, axis, epsilon);
+    std::vector<PHEN_T> result(highest.size());
+
+    std::transform(highest.begin(), highest.end(), result.begin(), [&pop](size_t pos) {return pop[pos];});
+    return result;
 }
 
 /// Multiply all of the ints in @param nums together.
@@ -114,18 +126,21 @@ long int VectorProduct(const emp::vector<int> & nums) {
 }
 
 template <typename PHEN_T>
-emp::vector<PHEN_T> FilterImpossible(emp::vector<PHEN_T> & pop, emp::vector<int> & axes, double epsilon = 0) { 
-    std::set<PHEN_T> possible;
-    
+void FilterImpossible(emp::vector<PHEN_T> & pop, emp::vector<int> & axes, double epsilon = 0) { 
+    emp::vector<int> best;
+    emp::vector<int> temp;
     for (int ax : axes) {
-        emp::vector<PHEN_T> best = FindHighest(pop, ax, epsilon);
-        for (PHEN_T & p : best) {
-            possible.insert(p);
-        }
+        temp = FindHighestIndices(pop, ax, epsilon);
+        best.reserve(best.size() + distance(temp.begin(),temp.end()));
+        best.insert(best.end(),temp.begin(),temp.end());       
     }
 
-    emp::vector<PHEN_T> result(possible.begin(), possible.end());
-    return result;
+    best = emp::RemoveDuplicates(best);
+    std::vector<PHEN_T> result(best.size());
+
+    std::transform(best.begin(), best.end(), result.begin(), [&pop](size_t pos) {return pop[pos];});
+
+    pop = result;
 }
 
 template <typename PHEN_T>
@@ -167,7 +182,14 @@ emp::vector<int> PruneAxes(emp::vector<int> & axes, emp::vector<PHEN_T> & pop, d
 }
 
 template <typename PHEN_T>
-void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
+struct lex_info {
+    int id;
+    PHEN_T phen;
+    double fitness = 0.0
+};
+
+template <typename PHEN_T>
+void TraverseDecisionTree(std::map<int, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
     // std::cout << "begining round of recursion " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
     if (axes.size() == 1) {
@@ -182,7 +204,7 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
     axes = PruneAxes(axes, pop, epsilon);
     perm_levels.push_back(axes.size());
 
-    pop = FilterImpossible(pop, axes, epsilon);
+    FilterImpossible(pop, axes, epsilon);
 
     // std::cout << "post processing: " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
@@ -241,7 +263,7 @@ void TournamentHelper(emp::vector<double> & fit_map, int t_size = 2){
     emp::vector<double> base_fit_map = fit_map;
     double pop_size = base_fit_map.size();
 
-    for (int i = 0; i < fit_map.size(); i++) {
+    for (size_t i = 0; i < fit_map.size(); i++) {
         double less = 0.0;
         double equal = 0.0; 
 
@@ -280,11 +302,11 @@ emp::vector<double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DE
 
     // std::cout << SigmaShare::Get(attrs) << std::endl;
 
-    for (int i = 0; i < pop.size(); i++) {
+    for (size_t i = 0; i < pop.size(); i++) {
         fit_map.push_back(1.0);
     }
 
-    for (int i = 0; i < pop.size(); i++) {
+    for (size_t i = 0; i < pop.size(); i++) {
         double niche_count = 0;
 
         for (PHEN_T & org2 : pop) {
@@ -314,7 +336,7 @@ emp::vector<double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFA
 
     size_t n_funs = pop[0].size();
 
-    for (int i = 0; i < pop.size(); i++) {
+    for (size_t i = 0; i < pop.size(); i++) {
         fit_map.push_back(1.0);
     }
 
@@ -331,7 +353,7 @@ emp::vector<double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFA
         if (count > 0) {
             res /= count; // Ignores resource accumulation, but that's okay for interactio  }
         }
-        for (int i = 0; i < pop.size(); i++) {
+        for (size_t i = 0; i < pop.size(); i++) {
             if (pop[i][axis] >= NicheWidth::Get(attrs)) {
                 fit_map[i] *= pow(2,std::min(Cf::Get(attrs)*res*pow(pop[i][axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
             }   
