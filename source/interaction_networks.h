@@ -182,14 +182,7 @@ emp::vector<int> PruneAxes(emp::vector<int> & axes, emp::vector<PHEN_T> & pop, d
 }
 
 template <typename PHEN_T>
-struct lex_info {
-    int id;
-    PHEN_T phen;
-    double fitness = 0.0
-};
-
-template <typename PHEN_T>
-void TraverseDecisionTree(std::map<int, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
+void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
     // std::cout << "begining round of recursion " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
     if (axes.size() == 1) {
