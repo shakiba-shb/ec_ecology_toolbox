@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "catch.hpp"
 
-#include "../source/interaction_networks.h"
+#include "../source/interaction_networks.hpp"
 
 using org_t = emp::vector<int>;
 using fit_map_t = emp::vector<double>;

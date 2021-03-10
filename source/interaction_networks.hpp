@@ -6,19 +6,19 @@
 #include <limits>
 #include <unordered_set>
 
-#include "base/vector.h"
-#include "base/assert.h"
-#include "tools/Random.h"
-#include "tools/random_utils.h"
-#include "tools/vector_utils.h"
-#include "tools/map_utils.h"
-#include "tools/string_utils.h"
-#include "tools/set_utils.h"
-#include "tools/math.h"
-#include "tools/distances.h"
-#include "tools/attrs.h"
-#include "tools/Graph.h"
-#include "Evolve/Resource.h"
+#include "base/vector.hpp"
+#include "base/assert.hpp"
+#include "math/Random.hpp"
+#include "math/random_utils.hpp"
+#include "datastructs/vector_utils.hpp"
+#include "datastructs/map_utils.hpp"
+#include "tools/string_utils.hpp"
+#include "datastructs/set_utils.hpp"
+#include "math/math.hpp"
+#include "math/distances.hpp"
+#include "tools/attrs.hpp"
+#include "datastructs/Graph.hpp"
+#include "Evolve/Resource.hpp"
 
 #include <math.h>  
 

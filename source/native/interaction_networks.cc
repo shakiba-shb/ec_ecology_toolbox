@@ -1,7 +1,7 @@
-#include "interaction_networks.h"
-#include "tools/string_utils.h"
-#include "config/ArgManager.h"
-#include "config/command_line.h"
+#include "interaction_networks.hpp"
+#include "tools/string_utils.hpp"
+#include "config/ArgManager.hpp"
+#include "config/command_line.hpp"
 
 EMP_BUILD_CONFIG( InteractionConfig,
   VALUE(REPS_PER_CONDITION, size_t, 10, "How many replicates per condition?"),
@@ -23,9 +23,9 @@ EMP_BUILD_CONFIG( InteractionConfig,
   VALUE(CF_START, double, 0.1, "Lowest CF"),
   VALUE(CF_END, double, 0.1, "Highest CF"),
   VALUE(CF_INC, double, 1, "Increment of CF"),
-  VALUE(NICH_WIDTH_START, double, 0, "Lowest NICH_WIDTH"),
-  VALUE(NICH_WIDTH_END, double, 10, "Highest NICH_WIDTH"),
-  VALUE(NICH_WIDTH_INC, double, 1, "Increment of NICH_WIDTH"),
+  VALUE(NICHE_WIDTH_START, double, 0, "Lowest NICHE_WIDTH"),
+  VALUE(NICHE_WIDTH_END, double, 10, "Highest NICHE_WIDTH"),
+  VALUE(NICHE_WIDTH_INC, double, 1, "Increment of NICHE_WIDTH"),
   VALUE(MAX_SCORE_START, double, 1, "Lowest MAX_SCORE"),
   VALUE(MAX_SCORE_END, double, 101, "Highest MAX_SCORE"),
   VALUE(MAX_SCORE_INC, double, 10, "Increment of MAX_SCORE")
