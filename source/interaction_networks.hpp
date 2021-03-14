@@ -376,9 +376,19 @@ void TournamentHelper(emp::vector<double> & fit_map, int t_size = 2){
 }
 
 template <typename PHEN_T>
+emp::vector<double> RandomFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
+    emp_assert(pop.size() > 0);
+    emp::vector<double> fit_map;
+    for (PHEN_T & org : pop) {
+        fit_map.push_back(1.0/(double)pop.size());
+    }
+    TournamentHelper(fit_map, TournamentSize::Get(attrs));
+    return fit_map;
+}
+
+template <typename PHEN_T>
 emp::vector<double> TournamentFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
     emp_assert(pop.size() > 0);
-    // emp::vector<double> fit_map;
     emp::vector<double> fit_map;
     for (PHEN_T & org : pop) {
         fit_map.push_back(emp::Sum(org));
@@ -433,18 +443,19 @@ emp::vector<double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFA
     }
 
     for (int axis : emp::NRange(0, (int)n_funs)) {
-        double res = ResourceInflow::Get(attrs);
+        double res = ResourceInflow::Get(attrs)/(double)pop.size(); // Average resource available per individual
         double count = 0;
 
         for (PHEN_T & org : pop) {
             if (org[axis] >= NicheWidth::Get(attrs)) {
-                count++;
+                count+= std::min(Cf::Get(attrs)*res*pow(org[axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs));
             }
         }
 
-        if (count > 0) {
-            res /= count; // Ignores resource accumulation, but that's okay for interactio  }
-        }
+        count /= (double) pop.size(); // average resource use per pop member
+        res -= count; // how much of average available resources are used on average
+        res = std::max(res, 0.0); // Can't have a negative amount of a resource
+
         for (size_t i = 0; i < pop.size(); i++) {
             if (pop[i][axis] >= NicheWidth::Get(attrs)) {
                 fit_map[i] *= pow(2,std::min(Cf::Get(attrs)*res*pow(pop[i][axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
@@ -468,6 +479,9 @@ std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_eco_ea = 
 
 template <typename PHEN_T>
 std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_sharing = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return SharingFitness(pop,attrs);};
+
+template <typename PHEN_T>
+std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_random = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return RandomFitness(pop,attrs);};
 
 
 template <typename PHEN_T>
