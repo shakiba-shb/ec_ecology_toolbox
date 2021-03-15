@@ -20,7 +20,7 @@ install:
 before_script:
   - cd ..
   - git clone https://github.com/emilydolson/Empirical.git
-  - cd Empirical && make install-dependencies && checkout ecology_ec
+  - cd Empirical && make install-dependencies && git checkout ecology_ec
   - git clone https://github.com/emilydolson/ec_ecology_toolbox.git
   - cd ../ec_ecology_toolbox
 script: 
