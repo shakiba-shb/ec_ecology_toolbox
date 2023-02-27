@@ -14,17 +14,17 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-    - name: Checkout Empirica;
+    - name: Checkout Empirical
       uses: actions/checkout@v3
       with:
         repository: devosoft/Empirical
-        path: Empirical
+        path: ../Empirical
         ref: MABE_devel
     - name: Checkout Catch
       uses: actions/checkout@v3
       with:
-        repository: devosoft/Empirical
+        repository: catchorg/Catch2
         path: Catch2
-        ref: v2.x        
+        ref: v2.x
     - name: make
       run: make test
