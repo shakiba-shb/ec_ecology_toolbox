@@ -1,6 +1,6 @@
 # Project-specific settings
 PROJECT := evo_comp_ecology
-EMP_DIR := ../EmpiricalSafe/include/emp
+EMP_DIR := ../Empirical/include/emp
 
 # Flags to use regardless of compiler
 CFLAGS_all := -Wall -Wno-unused-function -std=c++20 -I$(EMP_DIR)/ #-stdlib=libc++ -Wl,--no-undefined,
@@ -24,6 +24,7 @@ default: test
 
 test: tests/test_interaction_networks.cc
 	$(CXX_nat) $(CFLAGS_nat_debug) tests/test_interaction_networks.cc -o test
+	./test
 
 benchmark: tests/test_interaction_networks.cc
 	$(CXX_nat) $(CFLAGS_nat) tests/test_interaction_networks.cc -o test
