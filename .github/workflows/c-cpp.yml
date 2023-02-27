@@ -33,3 +33,4 @@ jobs:
     - uses: codecov/codecov-action@v3
       with:
         gcov: true
+        gcov_include: test_interaction_networks.cc
