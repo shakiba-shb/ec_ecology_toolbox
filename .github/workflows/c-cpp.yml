@@ -29,7 +29,7 @@ jobs:
         path: main/Catch2
         ref: v2.x
     - name: make
-      run: cd main && make test CXX=g++ && gcov test_interaction_networks.cc && ls
+      run: cd main && make test CXX=g++ && gcov test-test_interaction_networks.cc && ls
     - uses: codecov/codecov-action@v3
       with:
         root_dir: main/
