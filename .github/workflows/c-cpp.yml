@@ -30,3 +30,4 @@ jobs:
         ref: v2.x
     - name: make
       run: cd main && make test
+    - uses: codecov/codecov-action@v3
