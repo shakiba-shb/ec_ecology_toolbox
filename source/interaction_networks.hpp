@@ -104,8 +104,8 @@ emp::vector<int> FindHighestIndices(emp::vector<PHEN_T> & pop, int axis, double 
 }
 
 template <typename PHEN_T>
-bool IsElite(emp::vector<PHEN_T> & pop, int axis, int individual, double epsilon = 0) {
-    double best = pop[individual][axis];
+bool IsElite(emp::vector<PHEN_T> & pop, int axis, PHEN_T individual, double epsilon = 0) {
+    double best = individual[axis];
 
     for (size_t i = 0; i < pop.size(); i++) {
         if (pop[i][axis] > best + epsilon) {
@@ -116,7 +116,7 @@ bool IsElite(emp::vector<PHEN_T> & pop, int axis, int individual, double epsilon
 }
 
 template <typename PHEN_T>
-emp::vector<int> FindWinningAxes(emp::vector<PHEN_T> & pop, emp::vector<int> & axes, int individual, double epsilon = 0) {
+emp::vector<int> FindWinningAxes(emp::vector<PHEN_T> & pop, emp::vector<int> & axes, PHEN_T individual, double epsilon = 0) {
     emp::vector<int> winning;
     for (int ax : axes) {
         if (IsElite(pop, ax, individual, epsilon)) {
@@ -229,7 +229,6 @@ template <typename PHEN_T>
 double HandleTwoOrgsIndividual(emp::vector<PHEN_T> & winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
     double wins = 0;
     double losses = 0;
-    double p = 0;
 
     for (int ax : axes) {
         if (winners[0][ax] > winners[1][ax] + epsilon) {
@@ -418,7 +417,7 @@ void TraverseDecisionTreeNaive(std::map<PHEN_T, double> & fit_map, emp::vector<P
 
 
 template <typename PHEN_T>
-emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs = DEFAULT) {
+emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, double epsilon = 0) {
 
     emp_assert(pop.size() > 0);
     std::map<PHEN_T, double> fit_map;
@@ -429,7 +428,7 @@ emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs =
     }
 
     emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
-    TraverseDecisionTree(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
+    TraverseDecisionTree(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, epsilon);
 
     for (PHEN_T & org : de_dup_pop) {
         fit_map[org] /= emp::Count(pop, org);
@@ -444,7 +443,7 @@ emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs =
 }
 
 template <typename PHEN_T>
-emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs = DEFAULT) {
+emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, double epsilon = 0) {
 
     emp_assert(pop.size() > 0);
     std::map<PHEN_T, double> fit_map;
@@ -455,7 +454,7 @@ emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, all_at
     }
 
     emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
-    TraverseDecisionTreeNaive(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
+    TraverseDecisionTreeNaive(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, epsilon);
 
     for (PHEN_T & org : de_dup_pop) {
         fit_map[org] /= emp::Count(pop, org);
@@ -470,55 +469,15 @@ emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, all_at
 }
 
 template <typename PHEN_T>
-emp::vector<double> LexicaseFitnessIndividual(emp::vector<PHEN_T> & pop, int i, all_attrs attrs = DEFAULT) {
+double LexicaseFitnessIndividual(emp::vector<PHEN_T> & pop, int i, double epsilon = 0) {
 
     emp_assert(pop.size() > 0);
-    std::map<PHEN_T, double> fit_map;
     size_t n_funs = pop[0].size();
 
-    for (PHEN_T & org : pop) {
-        fit_map[org] = 0.0;
-    }
-
+    PHEN_T phen = pop[i];
+    double n_dups = emp::Count(pop, phen);
     emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
-    TraverseDecisionTree(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
-
-    for (PHEN_T & org : de_dup_pop) {
-        fit_map[org] /= emp::Count(pop, org);
-    }
-
-    emp::vector<double> result;
-    for (PHEN_T & org : pop) {
-        result.push_back(fit_map[org]);
-    }
-
-    return result;
-}
-
-template <typename PHEN_T>
-emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, int i, all_attrs attrs = DEFAULT) {
-
-    emp_assert(pop.size() > 0);
-    std::map<PHEN_T, double> fit_map;
-    size_t n_funs = pop[0].size();
-
-    for (PHEN_T & org : pop) {
-        fit_map[org] = 0.0;
-    }
-
-    emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
-    TraverseDecisionTreeNaive(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
-
-    for (PHEN_T & org : de_dup_pop) {
-        fit_map[org] /= emp::Count(pop, org);
-    }
-
-    emp::vector<double> result;
-    for (PHEN_T & org : pop) {
-        result.push_back(fit_map[org]);
-    }
-
-    return result;
+    return TraverseDecisionTreeIndividual(de_dup_pop, emp::NRange(0, (int)n_funs), phen, {}, epsilon)/n_dups;
 }
 
 
@@ -647,30 +606,29 @@ emp::vector<double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DE
 // };
 
 template <typename PHEN_T>
-std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_lexicase = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return LexicaseFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&)> do_lexicase = [](emp::vector<PHEN_T> & pop){return LexicaseFitness(pop);};
 
 template <typename PHEN_T>
-std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_tournament = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return TournamentFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&)> do_tournament = [](emp::vector<PHEN_T> & pop){return TournamentFitness(pop);};
 
 // template <typename PHEN_T>
 // std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_eco_ea = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return EcoEAFitness(pop,attrs);};
 
 template <typename PHEN_T>
-std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_sharing = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return SharingFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&)> do_sharing = [](emp::vector<PHEN_T> & pop){return SharingFitness(pop);};
 
 template <typename PHEN_T>
-std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_random = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return RandomFitness(pop,attrs);};
+std::function<emp::vector<double>(emp::vector<PHEN_T>&)> do_random = [](emp::vector<PHEN_T> & pop){return RandomFitness(pop);};
 
 
 template <typename PHEN_T>
 emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop, 
-                        std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> fit_fun,
-                        all_attrs attrs=DEFAULT) {
+                        std::function<emp::vector<double>(emp::vector<PHEN_T>&)> fit_fun) {
 
     emp::WeightedGraph effects(pop.size());
 
 
-    emp::vector<double> fitnesses = fit_fun(pop, attrs);
+    emp::vector<double> fitnesses = fit_fun(pop);
 
     for (size_t i = 0; i < pop.size(); i++) {
         effects.SetLabel(i, emp::to_string(pop[i]));
@@ -681,7 +639,7 @@ emp::WeightedGraph CalcCompetition(emp::vector<PHEN_T> pop,
             curr[i][ax] = 0; // Replace org with null org so pop size stays same
         }
 
-        emp::vector<double> new_fits = fit_fun(curr, attrs);
+        emp::vector<double> new_fits = fit_fun(curr);
         for (size_t j = 0; j < pop.size(); j++ ) {
             if (i == j) {continue;}
 

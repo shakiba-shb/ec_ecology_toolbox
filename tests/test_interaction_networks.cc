@@ -249,7 +249,9 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     pop = emp::vector<org_t>({{3,3,3}, {3, 3, 3}, {2,1,1}});
     fits = LexicaseFitness(pop);
     CHECK(fits[0] == Approx(.5));
+    CHECK(fits[0] == LexicaseFitnessIndividual(pop, 0));
     CHECK(fits[2] == 0);
+    CHECK(fits[2] == LexicaseFitnessIndividual(pop, 2));
     fits = UnoptimizedLexicaseFitness(pop);
     CHECK(fits[0] == Approx(.5));
     CHECK(fits[2] == 0);
@@ -257,6 +259,7 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     pop = emp::vector<org_t>({{3,1,2}, {1, 1, 2}, {2,1,1}});
     fits = LexicaseFitness(pop);
     CHECK(fits[0] == Approx(1));
+    CHECK(fits[0] == LexicaseFitnessIndividual(pop, 0));
     CHECK(fits[1] == 0);
     CHECK(fits[2] == 0);
     fits = UnoptimizedLexicaseFitness(pop);
@@ -267,8 +270,11 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     pop = emp::vector<org_t>({{3,1,2}, {1, 3, 2}, {2,3,1}});
     fits = LexicaseFitness(pop);
     CHECK(fits[0] == Approx(.5));
+    CHECK(fits[0] == Approx(LexicaseFitnessIndividual(pop, 0)));
     CHECK(fits[1] == Approx(.333333));
+    CHECK(fits[1] == Approx(LexicaseFitnessIndividual(pop, 1)));
     CHECK(fits[2] == Approx(.16666667));
+    CHECK(fits[2] == Approx(LexicaseFitnessIndividual(pop, 2)));
     fits = UnoptimizedLexicaseFitness(pop);
     CHECK(fits[0] == Approx(.5));
     CHECK(fits[1] == Approx(.333333));
@@ -294,12 +300,15 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     CHECK(fits_d[1] == Approx(.333333));
     CHECK(fits_d[2] == Approx(.16666667));
 
-    fits_d = LexicaseFitness(pop_d, emp::tools::Merge(Epsilon(1.0), DEFAULT));
+    fits_d = LexicaseFitness(pop_d, 1.0);
     CHECK(fits_d[0] == Approx(0));
+    CHECK(fits_d[0] == Approx(LexicaseFitnessIndividual(pop, 0, 1.0)));
     CHECK(fits_d[1] == Approx(.25));
+    CHECK(fits_d[1] == Approx(LexicaseFitnessIndividual(pop, 1, 1.0)));
     CHECK(fits_d[2] == Approx(.75));
+    CHECK(fits_d[2] == Approx(LexicaseFitnessIndividual(pop, 2, 1.0)));
 
-    fits_d = UnoptimizedLexicaseFitness(pop_d, emp::tools::Merge(Epsilon(1.0), DEFAULT));
+    fits_d = UnoptimizedLexicaseFitness(pop_d, 1.0);
     CHECK(fits_d[0] == Approx(0));
     CHECK(fits_d[1] == Approx(.25));
     CHECK(fits_d[2] == Approx(.75));
@@ -323,6 +332,7 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     for (size_t i = 0; i<fits.size(); i++) {
         total += fits[i];
         CHECK(fits[i] == Approx(unopt_fits[i]));
+        CHECK(fits[i] == Approx(LexicaseFitnessIndividual(pop, i)));
     }
     CHECK(total == Approx(1));
 
@@ -512,7 +522,7 @@ TEST_CASE("Fitness sharing", "[selection_schemes]") {
 TEST_CASE("Calc competition", "[helpers]") {
     emp::vector<org_t> pop = emp::vector<org_t>({{1,3,1}, {3, 1, 1}, {1,1,3}});
     // all_attrs settings = DEFAULT;
-    std::function<fit_map_t(emp::vector<org_t>&, all_attrs)> test_fun = [](emp::vector<org_t> & pop, all_attrs attrs=DEFAULT) {
+    std::function<fit_map_t(emp::vector<org_t>&)> test_fun = [](emp::vector<org_t> & pop) {
         fit_map_t base_fit_map;
         for (size_t i = 0; i < pop.size(); i++) {
             base_fit_map.push_back(1.0);
@@ -528,7 +538,7 @@ TEST_CASE("Calc competition", "[helpers]") {
         }
     }
 
-    test_fun = [](emp::vector<org_t> & pop, all_attrs attrs=DEFAULT) {
+    test_fun = [](emp::vector<org_t> & pop) {
         fit_map_t base_fit_map;
         for (size_t i = 0; i < pop.size(); i++) {
             base_fit_map.push_back(1.0);
