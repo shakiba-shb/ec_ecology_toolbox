@@ -79,7 +79,7 @@ typename std::enable_if<std::numeric_limits<T>::is_integer && std::numeric_limit
 /// to include everything within that range of the highest value
 template <typename PHEN_T>
 emp::vector<int> FindHighestIndices(emp::vector<PHEN_T> & pop, int axis, double epsilon = 0) {
-    double best = -1;
+    double best = std::numeric_limits<double>::lowest();
     emp::vector<int> winners;
 
     for (size_t i = 0; i < pop.size(); i++) {
@@ -101,6 +101,29 @@ emp::vector<int> FindHighestIndices(emp::vector<PHEN_T> & pop, int axis, double 
         }
     }
     return winners;
+}
+
+template <typename PHEN_T>
+bool IsElite(emp::vector<PHEN_T> & pop, int axis, int individual, double epsilon = 0) {
+    double best = pop[individual][axis];
+
+    for (size_t i = 0; i < pop.size(); i++) {
+        if (pop[i][axis] > best + epsilon) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <typename PHEN_T>
+emp::vector<int> FindWinningAxes(emp::vector<PHEN_T> & pop, emp::vector<int> & axes, int individual, double epsilon = 0) {
+    emp::vector<int> winning;
+    for (int ax : axes) {
+        if (IsElite(pop, ax, individual, epsilon)) {
+            winning.push_back(ax);
+        }
+    }
+    return winning;
 }
 
 template <typename PHEN_T>
@@ -202,79 +225,80 @@ void HandleTwoOrgs(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & win
     }
 }
 
-// template <typename PHEN_T>
-// double SizeTieSet(PHEN_T & org, std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
-//     emp::vector<int> temp = FindHighestIndices(winners, axes[0], epsilon);
-//     std::set<int> intersect_set(temp.begin(), temp.end());
-//     for (int ax : axes) {
-//         intersect_set = emp::intersection(intersect_set, FindHighestIndices(winners, ax, epsilon));
-//     }
+template <typename PHEN_T>
+double HandleTwoOrgsIndividual(emp::vector<PHEN_T> & winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
+    double wins = 0;
+    double losses = 0;
+    double p = 0;
 
-//     return (double)intersect_set.size();
-// }
+    for (int ax : axes) {
+        if (winners[0][ax] > winners[1][ax] + epsilon) {
+            wins++;
+        } else if (winners[1][ax] > winners[0][ax] + epsilon) {
+            losses++;
+        }
+    }
+    if (wins > 0 || losses > 0) {
+        return (wins/(wins+losses)) * (1.0/VectorProduct(perm_levels));//(double)emp::Factorial(axes.size() - 1);
+    } else {
+        return .5 * (1.0/VectorProduct(perm_levels));//(double)emp::Factorial(axes.size() - 1);
+    }
+}
 
-// template <typename PHEN_T>
-// void OrgWinCondition(PHEN_T & org, std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0) {
-//     // if (axes.size() == 1) {
-//     //     fit_map[org] += (1.0/VectorProduct(perm_levels)) * (1.0/(double)winners.size());
-//     //     return;
-//     // }
-    
-//     // PruneAxes(axes, winners, epsilon);
+template <typename PHEN_T>
+double TraverseDecisionTreeIndividual(emp::vector<PHEN_T> & pop, emp::vector<int> axes, PHEN_T individual, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
+    // std::cout << "begining round of recursion " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
-//     emp::vector<int> wins;
-//     emp::vector<int> ties;
-//     emp::vector<int> losses;
-//     for (int ax : axes) {
-//         bool win = true;
-//         bool tie = true;
-//         for (auto & other : winners) {
-//             if (other[ax] > org[ax]+epsilon) {
-//                 win = false;
-//                 tie = false;
-//                 break;
-//             } else if (!(org[ax] > other[ax] + epsilon) && (other != org)) {
-//                 win = false;
-//             }
-//         }
-//         if (win) {
-//             wins.push_back(ax);
-//         } else if(tie) {
-//             ties.push_back(ax);
-//         } else {
-//             losses.push_back(ax);
-//         }
-//     }
+    // std::cout << emp::to_string(pop) << emp::to_string(axes) << std::endl;
+ 
+    emp_assert(pop.size() > 0, axes, perm_levels);
 
+    // There's only one fitness criterion left, so it wins
+    if (axes.size() == 1) {
+        emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
+        if (emp::Has(winners, individual)) {
+            return 1.0/((double)winners.size()*VectorProduct(perm_levels));
+        }
+        return 0;
+    }
 
-//     if (wins == axes.size()) {
-//         fit_map[org] += 1.0/VectorProduct(perm_levels);
-//     } else {
-//         perm_levels.push_back(axes.size());
-//         fit_map[org] += (wins/(double)axes.size()) * 1.0/VectorProduct(perm_levels);
-//         // double tie_prob = 0.0;
-//         // for (size_t i = 0; i < ties.size()-1; i++) {
-//         //     tie_prob += (wins/(double)axes.size()) * pow(losses/(double)axes.size(), i);
-//         for (int ax : ties) {
-//             std::cout<< "exploring " << ax << emp::to_string(ties) << std::endl; 
-//             emp::vector<int> next_axes = axes;
-//             next_axes.erase(std::remove(next_axes.begin(), next_axes.end(), ax), next_axes.end());
-//             OrgWinCondition(org, fit_map, FindHighest(winners, ax, epsilon), next_axes, perm_levels, epsilon);
-//         }
-//         // }
-//         // tie_prob += pow(losses/(double)axes.size(), ties.size()-1) * 1.0/SizeTieSet(org, fit_map, winners, ties, perm_levels, epsilon); // Actual tie
-//         // fit_map[org] += tie_prob * 1.0/VectorProduct(perm_levels);
-//     }
+    // There's only one thing in the population, so it wins
+    if (pop.size() == 1) {
+        if (pop[0] == individual) {
+            return 1.0/VectorProduct(perm_levels);
+        }
+        return 0;
+    }
 
-// }
+    perm_levels.push_back(axes.size());
 
-// template <typename PHEN_T>
-// void HandleThreeOrgs(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & winners, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
-//     for (PHEN_T & org : winners) {
-//         OrgWinCondition(org, fit_map, winners, axes, perm_levels, epsilon);
-//     }
+    double plex = 0;
+    for (int ax : FindWinningAxes(pop, axes, individual, epsilon)) {
+        emp::vector<PHEN_T> winners = FindHighest(pop, ax, epsilon);
+        emp::vector<int> next_axes = axes;
+        next_axes.erase(std::remove(next_axes.begin(), next_axes.end(), ax), next_axes.end());
+        FilterImpossible(winners, next_axes, epsilon);
 
-// }
+        if (!emp::Has(winners, individual)) {
+            continue;
+        }
+
+        if (winners.size() == 1) { // Not a tie
+            plex += 1.0/VectorProduct(perm_levels);
+
+        } else if (winners.size() == 2) { // optimization
+            if (winners[0] != individual) {
+                winners[1] = winners[0];
+                winners[0] = individual;
+            }
+            plex += HandleTwoOrgsIndividual(winners, next_axes, perm_levels, epsilon);
+
+        } else { // tie
+            plex += TraverseDecisionTreeIndividual(winners, next_axes, individual, perm_levels, epsilon);
+        }
+    }
+    return plex;
+}
 
 template <typename PHEN_T>
 void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
@@ -282,6 +306,9 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
 
     // std::cout << emp::to_string(pop) << emp::to_string(axes) << std::endl;
  
+    emp_assert(pop.size() > 0, axes, perm_levels);
+
+    // There's only one fitness criterion left, so it wins
     if (axes.size() == 1) {
         emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
         // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
@@ -291,10 +318,43 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
         return;
     }
 
+    // There's only one thing in the population, so it wins
+    if (pop.size() == 1) {
+        emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
+        // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
+        for (PHEN_T & org : winners) {
+            fit_map[org]+=1.0/VectorProduct(perm_levels);
+        }
+        return;
+    }
+
     PruneAxes(axes, pop, epsilon);
     perm_levels.push_back(axes.size());
 
+
     FilterImpossible(pop, axes, epsilon);
+
+    // Check for only one axis again now that we've pruned the axes
+    if (axes.size() == 1) {
+        emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
+        // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
+        for (PHEN_T & org : winners) {
+            fit_map[org]+=1.0/((double)winners.size()*VectorProduct(perm_levels));
+        }
+        return;
+    }
+
+    // Check again now that we've filtered out members of the population that won't win
+    // There's only one thing in the population, so it wins
+    // if (pop.size() == 1) {
+    //     emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
+    //     // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
+    //     for (PHEN_T & org : winners) {
+    //         fit_map[org]+=1.0/VectorProduct(perm_levels);
+    //     }
+    //     return;
+    // }
+
 
     // std::cout << "post processing: " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
 
@@ -320,6 +380,42 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
     }
 }
 
+template <typename PHEN_T>
+void TraverseDecisionTreeNaive(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T> & pop, emp::vector<int> axes, emp::vector<int> perm_levels, double epsilon = 0, emp::vector<int> active_set = {}) {
+    // std::cout << "begining round of recursion " << axes.size() << emp::to_string(pop) << emp::to_string(axes) << std::endl;
+
+    // std::cout << emp::to_string(pop) << emp::to_string(axes) << std::endl;
+ 
+    emp_assert(pop.size() > 0, axes, perm_levels);
+
+    if (axes.size() == 0) {
+        for (PHEN_T & org : pop) {
+            fit_map[org]+=1.0/(pop.size() * VectorProduct(perm_levels));
+        }
+        return;        
+    }
+
+    // There's only one thing in the population, so it wins
+    if (pop.size() == 1) {
+        emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
+        // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
+        for (PHEN_T & org : winners) {
+            fit_map[org]+=1.0/VectorProduct(perm_levels);
+        }
+        return;
+    }
+
+    perm_levels.push_back(axes.size());
+
+    for (int ax : axes) {
+        emp::vector<PHEN_T> winners = FindHighest(pop, ax, epsilon);
+        emp::vector<int> next_axes = axes;
+        next_axes.erase(std::remove(next_axes.begin(), next_axes.end(), ax), next_axes.end());
+        TraverseDecisionTreeNaive(fit_map, winners, next_axes, perm_levels, epsilon);
+    }
+}
+
+
 
 template <typename PHEN_T>
 emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs = DEFAULT) {
@@ -337,9 +433,6 @@ emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs =
 
     for (PHEN_T & org : de_dup_pop) {
         fit_map[org] /= emp::Count(pop, org);
-        // std::cout << "Pre div: " << fit_map[org] << std::endl;
-        // fit_map[org] /= emp::Factorial(n_funs); // convert to proportion of "islands"
-        // std::cout << "Post div: " << fit_map[org] << " Divided by: " << (double)emp::Factorial(n_funs) << std::endl;
     }
 
     emp::vector<double> result;
@@ -349,6 +442,85 @@ emp::vector<double> LexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs =
 
     return result;
 }
+
+template <typename PHEN_T>
+emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, all_attrs attrs = DEFAULT) {
+
+    emp_assert(pop.size() > 0);
+    std::map<PHEN_T, double> fit_map;
+    size_t n_funs = pop[0].size();
+
+    for (PHEN_T & org : pop) {
+        fit_map[org] = 0.0;
+    }
+
+    emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
+    TraverseDecisionTreeNaive(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
+
+    for (PHEN_T & org : de_dup_pop) {
+        fit_map[org] /= emp::Count(pop, org);
+    }
+
+    emp::vector<double> result;
+    for (PHEN_T & org : pop) {
+        result.push_back(fit_map[org]);
+    }
+
+    return result;
+}
+
+template <typename PHEN_T>
+emp::vector<double> LexicaseFitnessIndividual(emp::vector<PHEN_T> & pop, int i, all_attrs attrs = DEFAULT) {
+
+    emp_assert(pop.size() > 0);
+    std::map<PHEN_T, double> fit_map;
+    size_t n_funs = pop[0].size();
+
+    for (PHEN_T & org : pop) {
+        fit_map[org] = 0.0;
+    }
+
+    emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
+    TraverseDecisionTree(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
+
+    for (PHEN_T & org : de_dup_pop) {
+        fit_map[org] /= emp::Count(pop, org);
+    }
+
+    emp::vector<double> result;
+    for (PHEN_T & org : pop) {
+        result.push_back(fit_map[org]);
+    }
+
+    return result;
+}
+
+template <typename PHEN_T>
+emp::vector<double> UnoptimizedLexicaseFitness(emp::vector<PHEN_T> & pop, int i, all_attrs attrs = DEFAULT) {
+
+    emp_assert(pop.size() > 0);
+    std::map<PHEN_T, double> fit_map;
+    size_t n_funs = pop[0].size();
+
+    for (PHEN_T & org : pop) {
+        fit_map[org] = 0.0;
+    }
+
+    emp::vector<PHEN_T> de_dup_pop = emp::RemoveDuplicates(pop);
+    TraverseDecisionTreeNaive(fit_map, de_dup_pop, emp::NRange(0, (int)n_funs), {}, Epsilon::Get(attrs));
+
+    for (PHEN_T & org : de_dup_pop) {
+        fit_map[org] /= emp::Count(pop, org);
+    }
+
+    emp::vector<double> result;
+    for (PHEN_T & org : pop) {
+        result.push_back(fit_map[org]);
+    }
+
+    return result;
+}
+
 
 void TournamentHelper(emp::vector<double> & fit_map, int t_size = 2){
 
@@ -429,44 +601,50 @@ emp::vector<double> SharingFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DE
     return fit_map;    
 };
 
-template <typename PHEN_T>
-emp::vector<double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
-    // std::cout << "ECO-EA" << std::endl;
-    emp_assert(pop.size() > 0);
 
-    emp::vector<double> fit_map;
+// TODO: the handling of resource use here needs to be re-thought
+// template <typename PHEN_T>
+// emp::vector<double> EcoEAFitness(emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT) {
+//     // std::cout << "ECO-EA" << std::endl;
+//     emp_assert(pop.size() > 0);
 
-    size_t n_funs = pop[0].size();
+//     emp::vector<double> fit_map;
 
-    for (size_t i = 0; i < pop.size(); i++) {
-        fit_map.push_back(1.0);
-    }
+//     size_t n_funs = pop[0].size();
 
-    for (int axis : emp::NRange(0, (int)n_funs)) {
-        double res = ResourceInflow::Get(attrs)/(double)pop.size(); // Average resource available per individual
-        double count = 0;
+//     for (size_t i = 0; i < pop.size(); i++) {
+//         fit_map.push_back(1.0);
+//     }
 
-        for (PHEN_T & org : pop) {
-            if (org[axis] >= NicheWidth::Get(attrs)) {
-                count+= std::min(Cf::Get(attrs)*res*pow(org[axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs));
-            }
-        }
+//     for (int axis : emp::NRange(0, (int)n_funs)) {
+//         double res = ResourceInflow::Get(attrs)/(double)pop.size(); // Average resource available per individual
+//         double count = 0;
 
-        count /= (double) pop.size(); // average resource use per pop member
-        res -= count; // how much of average available resources are used on average
-        res = std::max(res, 0.0); // Can't have a negative amount of a resource
+//         for (PHEN_T & org : pop) {
+//             if (org[axis] >= NicheWidth::Get(attrs)) {
+//                 count+= std::min(Cf::Get(attrs)*res*pow(org[axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs));
+//             }
+//         }
 
-        for (size_t i = 0; i < pop.size(); i++) {
-            if (pop[i][axis] >= NicheWidth::Get(attrs)) {
-                fit_map[i] *= pow(2,std::min(Cf::Get(attrs)*res*pow(pop[i][axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
-            }   
-        }
-    }
+//         count /= (double) pop.size(); // average resource use per pop member
+//         res -= count; // how much of average available resources are used on average
+//         res = std::max(res, 0.0); // Can't have a negative amount of a resource
 
-    TournamentHelper(fit_map, TournamentSize::Get(attrs));
+//         for (size_t i = 0; i < pop.size(); i++) {
+//             if (pop[i][axis] >= NicheWidth::Get(attrs)) {
+//                 fit_map[i] *= pow(2,std::min(Cf::Get(attrs)*res*pow(pop[i][axis]/MaxScore::Get(attrs),2.0) - Cost::Get(attrs), MaxBonus::Get(attrs)));
+//             }
+//         }
+//     }
 
-    return fit_map;
-};
+//     for (size_t i = 0 ; i < pop.size(); i++) {
+//         std::cout << i << " " << fit_map[i] << std::endl;
+//     }
+
+//     TournamentHelper(fit_map, TournamentSize::Get(attrs));
+
+//     return fit_map;
+// };
 
 template <typename PHEN_T>
 std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_lexicase = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return LexicaseFitness(pop,attrs);};
@@ -474,8 +652,8 @@ std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_lexicase 
 template <typename PHEN_T>
 std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_tournament = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return TournamentFitness(pop,attrs);};
 
-template <typename PHEN_T>
-std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_eco_ea = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return EcoEAFitness(pop,attrs);};
+// template <typename PHEN_T>
+// std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_eco_ea = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return EcoEAFitness(pop,attrs);};
 
 template <typename PHEN_T>
 std::function<emp::vector<double>(emp::vector<PHEN_T>&, all_attrs)> do_sharing = [](emp::vector<PHEN_T> & pop, all_attrs attrs=DEFAULT){return SharingFitness(pop,attrs);};
