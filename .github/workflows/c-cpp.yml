@@ -34,7 +34,6 @@ jobs:
       with:
         root_dir: main
         directory: main
-        working-directory: main
         gcov: true
         gcov_include: test_interaction_networks.cc
         verbose: true
