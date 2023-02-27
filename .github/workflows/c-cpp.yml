@@ -33,5 +33,7 @@ jobs:
     - uses: codecov/codecov-action@v3
       with:
         root_dir: main
+        working-directory: main
         gcov: true
         gcov_include: test-test_interaction_networks.cc
+        verbose: true
