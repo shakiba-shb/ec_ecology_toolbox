@@ -32,8 +32,8 @@ jobs:
       run: cd main && make test && ls
     - uses: codecov/codecov-action@v3
       with:
-        root_dir: main
-        directory: main
+        root_dir: main/
+        directory: main/
         gcov: true
-        gcov_include: test_interaction_networks.cc
+        gcov_include: interaction_networks.hpp
         verbose: true
