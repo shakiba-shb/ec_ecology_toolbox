@@ -123,7 +123,21 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     CHECK(fits[0] == 1);
     fits = UnoptimizedLexicaseFitness(pop);
     CHECK(fits[0] == 1);
+    CHECK(LexicaseFitnessIndividual(pop, 0) == 1);
 
+    pop = emp::vector<org_t>({{0}, {2}, {1}, {0}});
+    fits = LexicaseFitness(pop);
+    CHECK(fits[0] == 0);
+    CHECK(fits[1] == 1);
+    CHECK(fits[2] == 0);
+    CHECK(fits[3] == 0);
+    fits = UnoptimizedLexicaseFitness(pop);
+    CHECK(fits[0] == 0);
+    CHECK(fits[1] == 1);
+    CHECK(fits[2] == 0);
+    CHECK(fits[3] == 0);
+    CHECK(LexicaseFitnessIndividual(pop, 1) == 1);
+    CHECK(LexicaseFitnessIndividual(pop, 0) == 0);
 
     pop = emp::vector<org_t>({{1,0,0,0,0,1,1,0,0,0,0,0}, {1,1,0,0,0,0,0,1,0,0,0,0}, 
                               {0,1,1,0,0,0,0,0,1,0,0,0}, {0,0,1,1,0,0,0,0,0,1,0,0}, 
