@@ -336,6 +336,48 @@ TEST_CASE("Lexicase", "[selection_schemes]") {
     }
     CHECK(total == Approx(1));
 
+    pop.clear();
+    pop.resize(10);
+
+    for (int org = 0; org < 10; ++org) {
+        // pop[org].resize(5);
+        for (int loc = 0; loc < 5; ++loc) {
+            pop[org].push_back(r.GetGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
+    unopt_fits = UnoptimizedLexicaseFitness(pop);
+    CHECK(fits.size() == unopt_fits.size());
+    total = 0;
+    for (size_t i = 0; i<fits.size(); i++) {
+        total += fits[i];
+        CHECK(fits[i] == Approx(unopt_fits[i]));
+        CHECK(fits[i] == Approx(LexicaseFitnessIndividual(pop, i)));
+    }
+    CHECK(total == Approx(1));
+
+    pop.clear();
+    pop.resize(5);
+
+    for (int org = 0; org < 5; ++org) {
+        // pop[org].resize(10);
+        for (int loc = 0; loc < 10; ++loc) {
+            pop[org].push_back(r.GetGeometric(.5));
+        }
+    } 
+
+    fits = LexicaseFitness(pop);
+    unopt_fits = UnoptimizedLexicaseFitness(pop);
+    CHECK(fits.size() == unopt_fits.size());
+    total = 0;
+    for (size_t i = 0; i<fits.size(); i++) {
+        total += fits[i];
+        CHECK(fits[i] == Approx(unopt_fits[i]));
+        CHECK(fits[i] == Approx(LexicaseFitnessIndividual(pop, i)));
+    }
+    CHECK(total == Approx(1));
+
 
     pop.clear();
     pop.resize(20);
