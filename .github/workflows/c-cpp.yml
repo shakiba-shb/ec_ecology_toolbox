@@ -35,5 +35,4 @@ jobs:
         root_dir: main/
         directory: main/
         gcov: true
-        gcov_include: interaction_networks.hpp
         verbose: true
