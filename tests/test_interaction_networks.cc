@@ -700,3 +700,16 @@ TEST_CASE("Calc competition", "[helpers]") {
 //         meter.measure([&pops](int i){ return UnoptimizedLexicaseFitness(pops[i]); });
 //     };
 // }
+
+TEST_CASE("Test epsilon lexicase") {
+
+    emp::vector<org_t> pop({{1,0,0,0,0}, {0, 0, 0, 0, 0}, {0,0,0,0,1}, {0,0,0,1,0}});
+    fit_map_t fits = LexicaseFitness(pop, 2);
+    for (auto & o : fits) {
+        CHECK(o == Approx(.25));
+    }
+    fits = UnoptimizedLexicaseFitness(pop, 2);
+    for (auto & o : fits) {
+        CHECK(o == Approx(.25));
+    }
+}

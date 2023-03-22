@@ -1,6 +1,6 @@
 # Project-specific settings
 PROJECT := evo_comp_ecology
-EMP_DIR := ../Empirical/include/emp
+EMP_DIR := ../EmpiricalSafe/include/emp
 
 # Flags to use regardless of compiler
 CFLAGS_all := -Wall -Wno-unused-function -std=c++20 -I$(EMP_DIR)/ #-stdlib=libc++ -Wl,--no-undefined,
@@ -10,6 +10,7 @@ CXX := clang++
 CXX_nat := $(CXX)
 CFLAGS_nat := -O3 -DNDEBUG $(CFLAGS_all)
 CFLAGS_nat_debug := -fprofile-arcs -ftest-coverage -g $(CFLAGS_all)
+CFLAGS_nat_profile := -fprofile-arcs -ftest-coverage -pg $(CFLAGS_all)
 
 # Emscripten compiler information
 # CXX_web := emcc
@@ -24,6 +25,10 @@ default: test
 
 test: tests/test_interaction_networks.cc
 	$(CXX_nat) $(CFLAGS_nat_debug) tests/test_interaction_networks.cc -o test
+	./test
+
+profile: tests/test_interaction_networks.cc
+	$(CXX_nat) $(CFLAGS_nat_profile) tests/test_interaction_networks.cc -o test
 	./test
 
 benchmark: tests/test_interaction_networks.cc

@@ -306,6 +306,7 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
     // std::cout << emp::to_string(pop) << emp::to_string(axes) << std::endl;
  
     emp_assert(pop.size() > 0, axes, perm_levels);
+    emp_assert(axes.size() > 0, axes, perm_levels);
 
     // There's only one fitness criterion left, so it wins
     if (axes.size() == 1) {
@@ -319,15 +320,22 @@ void TraverseDecisionTree(std::map<PHEN_T, double> & fit_map, emp::vector<PHEN_T
 
     // There's only one thing in the population, so it wins
     if (pop.size() == 1) {
-        emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
+        // TODO: Figure out if we actually need this
+        // emp::vector<PHEN_T> winners = FindHighest(pop, axes[0], epsilon);
         // std::cout << "Winners: " << emp::to_string(winners) << std::endl;
-        for (PHEN_T & org : winners) {
+        for (PHEN_T & org : pop) {
             fit_map[org]+=1.0/VectorProduct(perm_levels);
         }
         return;
     }
 
     PruneAxes(axes, pop, epsilon);
+    if (axes.size() == 0) {
+        for (PHEN_T & org : pop) {
+            fit_map[org]+=1.0/((double)pop.size()*VectorProduct(perm_levels));
+        }        
+        return;
+    }
     perm_levels.push_back(axes.size());
 
 
