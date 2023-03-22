@@ -1,9 +1,14 @@
 # Project-specific settings
 PROJECT := evo_comp_ecology
 EMP_DIR := ../Empirical/include/emp
+PYBIND_DIR := $(shell python3 -m pybind11 --includes)
+
+INCLUDE := $(shell python3 -m pybind11 --includes)
+FLAG := -Wall -shared -std=c++20 -fPIC -fvisibility=hidden
+SUFFIX := $(shell python3-config --extension-suffix)
 
 # Flags to use regardless of compiler
-CFLAGS_all := -Wall -Wno-unused-function -std=c++20 -I$(EMP_DIR)/ #-stdlib=libc++ -Wl,--no-undefined,
+CFLAGS_all := -Wall -shared -std=c++20 -fPIC -Wno-unused-function -I$(EMP_DIR)/ $(PYBIND_DIR)/ -I/usr/include/python3.8/ -o lexicase$(shell python3-config --extension-suffix)
 
 # Native compiler information
 CXX := clang++
