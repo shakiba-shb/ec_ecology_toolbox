@@ -15,6 +15,7 @@ CXX := clang++
 CXX_nat := $(CXX)
 CFLAGS_nat := -O3 -DNDEBUG $(CFLAGS_all)
 CFLAGS_nat_debug := -fprofile-arcs -ftest-coverage -g $(CFLAGS_all)
+CFLAGS_nat_profile := -fprofile-arcs -ftest-coverage -pg $(CFLAGS_all)
 
 # Emscripten compiler information
 # CXX_web := emcc
@@ -29,6 +30,10 @@ default: test
 
 test: tests/test_interaction_networks.cc
 	$(CXX_nat) $(CFLAGS_nat_debug) tests/test_interaction_networks.cc -o test
+	./test
+
+profile: tests/test_interaction_networks.cc
+	$(CXX_nat) $(CFLAGS_nat_profile) tests/test_interaction_networks.cc -o test
 	./test
 
 benchmark: tests/test_interaction_networks.cc
