@@ -8,7 +8,7 @@ FLAG := -Wall -shared -std=c++20 -fPIC -fvisibility=hidden
 SUFFIX := $(shell python3-config --extension-suffix)
 
 # Flags to use regardless of compiler
-CFLAGS_all := -Wall -shared -std=c++20 -fPIC -Wno-unused-function -I$(EMP_DIR)/ $(PYBIND_DIR)/ -I/usr/include/python3.8/ -o lexicase$(shell python3-config --extension-suffix)
+CFLAGS_all := -Wall -shared -std=c++20 -fPIC -Wno-unused-function -I$(EMP_DIR)/
 
 # Native compiler information
 CXX := clang++
@@ -16,6 +16,7 @@ CXX_nat := $(CXX)
 CFLAGS_nat := -O3 -DNDEBUG $(CFLAGS_all)
 CFLAGS_nat_debug := -fprofile-arcs -ftest-coverage -g $(CFLAGS_all)
 CFLAGS_nat_profile := -fprofile-arcs -ftest-coverage -pg $(CFLAGS_all)
+CFLAGS_pybind := $(PYBIND_DIR)/ -I/usr/include/python3.8/ $(CFLAGS_all)
 
 # Emscripten compiler information
 # CXX_web := emcc
@@ -40,6 +41,8 @@ benchmark: tests/test_interaction_networks.cc
 	$(CXX_nat) $(CFLAGS_nat) tests/test_interaction_networks.cc -o test
 	./test benchmarks
 
+wrapper:
+	$(CXX_nat) $(CFLAGS_pybind) source/PythonWrapper.cc -o lexicase$(shell python3-config --extension-suffix)
 
 clean:
 	rm -f *~ source/*.o test *.gcda *.gcno
