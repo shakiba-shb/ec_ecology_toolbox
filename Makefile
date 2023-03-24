@@ -1,14 +1,9 @@
 # Project-specific settings
 PROJECT := evo_comp_ecology
 EMP_DIR := ../Empirical/include/emp
-PYBIND_DIR := $(shell python3 -m pybind11 --includes)
-
-INCLUDE := $(shell python3 -m pybind11 --includes)
-FLAG := -Wall -shared -std=c++20 -fPIC -fvisibility=hidden
-SUFFIX := $(shell python3-config --extension-suffix)
 
 # Flags to use regardless of compiler
-CFLAGS_all := -Wall -shared -std=c++20 -fPIC -Wno-unused-function -I$(EMP_DIR)/ $(PYBIND_DIR)/ -I/usr/include/python3.8/ -o lexicase$(shell python3-config --extension-suffix)
+CFLAGS_all := -Wall -std=c++20 -fPIC -Wno-unused-function -I$(EMP_DIR)/
 
 # Native compiler information
 CXX := clang++
@@ -40,6 +35,8 @@ benchmark: tests/test_interaction_networks.cc
 	$(CXX_nat) $(CFLAGS_nat) tests/test_interaction_networks.cc -o test
 	./test benchmarks
 
+wrapper:
+	$(CXX_nat) -shared $(shell python3 -m pybind11 --includes)/ -I/usr/include/python3.8/ $(CFLAGS_all) source/PythonWrapper.cc -o lexicase$(shell python3-config --extension-suffix)
 
 clean:
 	rm -f *~ source/*.o test *.gcda *.gcno
